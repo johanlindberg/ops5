@@ -1,0 +1,401 @@
+ 
+(literalize stage value)
+(literalize line p1 p2)
+(literalize edge type p1 p2 joined)
+(literalize edge_label p1 p2 l_name l_id)
+(literalize junction p1 p2 p3 base_point type name visited)
+(literalize label id type name n1 n2 n3)
+(literalize illegal bp l_id)
+  
+(p reverse_edges
+	(stage ^value duplicate)
+	(line ^p1 <p1> ^p2 <p2>)
+	-->
+	(make edge ^p1 <p1> ^p2 <p2> ^joined false)
+        (make edge ^p1 <p2> ^p2 <p1> ^joined false)
+	(remove 2))
+ 
+(p done_reversing
+	(stage ^value duplicate)
+	- (line)
+	-->
+	(modify 1 ^value detect_junctions))
+ 
+ (p make_3_junction
+	(stage ^value detect_junctions)
+	(edge ^p1 <base_point> ^p2 <p1> ^joined false)
+	(edge ^p1 <base_point> ^p2 {<p2> <> <p1>} ^joined false)
+	(edge ^p1 <base_point> ^p2 {<p3> <> <p1> <> <p2>} ^joined false)
+	-->
+	(make junction
+		^type 3j
+		^name (make_3_junction <base_point> <p1> <p2> <p3>)
+		^base_point <base_point>
+		^visited no)
+	(modify 2 ^type 3j ^joined true)
+	(modify 3 ^type 3j ^joined true)
+	(modify 4 ^type 3j ^joined true))
+ 
+(p make_L
+	(stage ^value detect_junctions)
+	(edge ^p1 <base_point> ^p2 <p2> ^joined false)
+	(edge ^p1 <base_point> ^p2 {<p3> <> <p2>} ^joined false)
+	- (edge ^p1 <base_point> ^p2 {<> <p2> <> <p3>})
+	-->
+	(make junction
+		^type 2j
+		^name L
+		^base_point <base_point>
+		^p1 <p2>
+		^p2 <p3>
+		^visited no)
+	(modify 2 ^type 2j ^joined true)
+	(modify 3 ^type 2j ^joined true))
+ 
+ (p done_detecting
+	(stage ^value detect_junctions)
+	- (edge ^joined false)
+	-->
+	(modify 1 ^value find_initial_boundary))
+ 
+(p initial_boundary_junction_L
+	(stage ^value find_initial_boundary)
+        (junction ^type 2j ^base_point <bp> ^p1 <p1> ^p2 <p2>)
+	(edge ^p1 <bp> ^p2 <p1>)
+	(edge ^p1 <bp> ^p2 <p2>)
+	-(junction ^base_point > <bp>)
+	-->
+        (modify 2 ^visited yes)
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name B ^l_id 1)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name B ^l_id 1)
+	(modify 1 ^value find_second_boundary))
+ 
+(p initial_boundary_junction_arrow
+	(stage ^value find_initial_boundary)
+	(junction ^type 3j ^name arrow ^base_point <bp> ^p1 <p1> ^p2 <p2> ^p3 <p3>)
+	(edge ^p1 <bp> ^p2 <p1>)
+	(edge ^p1 <bp> ^p2 <p2>)
+	(edge ^p1 <bp> ^p2 <p3>)
+	-(junction ^base_point > <bp>)
+	-->
+        (modify 2 ^visited yes)
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name B ^l_id 14)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name + ^l_id 14)
+	(make edge_label ^p1 <bp> ^p2 <p3> ^l_name B ^l_id 14)
+	(modify 1 ^value find_second_boundary))
+  
+(p second_boundary_junction_L
+	(stage ^value find_second_boundary)
+        (junction ^type 2j ^base_point <bp> ^p1 <p1> ^p2 <p2>)
+	(edge ^p1 <bp> ^p2 <p1>)
+	(edge ^p1 <bp> ^p2 <p2>)
+	-(junction ^base_point < <bp>)
+	-->
+        (modify 2 ^visited yes)
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name B ^l_id 1)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name B ^l_id 1)
+	(modify 1 ^value labeling))
+ 
+(p second_boundary_junction_arrow
+	(stage ^value find_second_boundary)
+	(junction ^type 3j ^name arrow ^base_point <bp> ^p1 <p1> ^p2 <p2> ^p3 <p3>)
+	(edge ^p1 <bp> ^p2 <p1>)
+	(edge ^p1 <bp> ^p2 <p2>)
+	(edge ^p1 <bp> ^p2 <p3>)
+	-(junction ^base_point < <bp>)
+	-->
+        (modify 2 ^visited yes)
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name B ^l_id 14)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name + ^l_id 14)
+	(make edge_label ^p1 <bp> ^p2 <p3> ^l_name B ^l_id 14)
+	(modify 1 ^value labeling))
+
+(p start_visit_3_junction
+	(stage ^value labeling)
+	(junction ^base_point <bp> ^type 3j ^p1 <p1> ^p2 <p2> ^p3 <p3> ^visited no)
+	-->
+	(modify 1 ^value visiting_3j)
+	(modify 2 ^visited now)) 
+
+(p visit_3j_0
+	(stage ^value visiting_3j)
+	(junction ^name <n> ^base_point <bp> ^p1 <p1> ^p2 <p2> ^p3 <p3> ^visited now)
+	(label ^name <n> ^id <id> ^n1 <n1> ^n2 <n2> ^n3 <n3>)
+	(edge_label ^p1 <p1> ^p2 <bp> ^l_name <n1>)
+	(edge_label ^p1 <p2> ^p2 <bp> ^l_name <n2>)
+	(edge_label ^p1 <p3> ^p2 <bp> ^l_name <n3>)
+	-(edge_label ^p1 <bp> ^l_id <id>)
+	-->
+	; (write edge_label <bp> <p1> <n1> <id> (crlf))
+	; (write edge_label <bp> <p2> <n2> <id> (crlf))
+	; (write edge_label <bp> <p3> <n3> <id> (crlf))
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name <n1> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name <n2> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p3> ^l_name <n3> ^l_id <id>))
+
+(p visit_3j_1
+	(stage ^value visiting_3j)
+	(junction ^name <n> ^base_point <bp> ^p1 <p1> ^p2 <p2> ^p3 <p3> ^visited now)
+	(label ^name <n> ^id <id> ^n1 <n1> ^n2 <n2> ^n3 <n3>)
+	-(edge_label ^p1 <p1> ^p2 <bp>)
+	(edge_label ^p1 <p2> ^p2 <bp> ^l_name <n2>)
+	(edge_label ^p1 <p3> ^p2 <bp> ^l_name <n3>)
+	-(edge_label ^p1 <bp> ^l_id <id>)
+	-->
+	; (write edge_label <bp> <p1> <n1> <id> (crlf))
+	; (write edge_label <bp> <p2> <n2> <id> (crlf))
+	; (write edge_label <bp> <p3> <n3> <id> (crlf))
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name <n1> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name <n2> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p3> ^l_name <n3> ^l_id <id>))
+
+(p visit_3j_2
+	(stage ^value visiting_3j)
+	(junction ^name <n> ^base_point <bp> ^p1 <p1> ^p2 <p2> ^p3 <p3> ^visited now)
+	(label ^name <n> ^id <id> ^n1 <n1> ^n2 <n2> ^n3 <n3>)
+	(edge_label ^p1 <p1> ^p2 <bp> ^l_name <n1>)
+	-(edge_label ^p1 <p2> ^p2 <bp>)
+	(edge_label ^p1 <p3> ^p2 <bp> ^l_name <n3>)
+	-(edge_label ^p1 <bp> ^l_id <id>)
+	-->
+	; (write edge_label <bp> <p1> <n1> <id> (crlf))
+	; (write edge_label <bp> <p2> <n2> <id> (crlf))
+	; (write edge_label <bp> <p3> <n3> <id> (crlf))
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name <n1> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name <n2> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p3> ^l_name <n3> ^l_id <id>))
+
+(p visit_3j_3
+	(stage ^value visiting_3j)
+	(junction ^name <n> ^base_point <bp> ^p1 <p1> ^p2 <p2> ^p3 <p3> ^visited now)
+	(label ^name <n> ^id <id> ^n1 <n1> ^n2 <n2> ^n3 <n3>)
+	-(edge_label ^p1 <p1> ^p2 <bp>)
+	-(edge_label ^p1 <p2> ^p2 <bp>)
+	(edge_label ^p1 <p3> ^p2 <bp> ^l_name <n3>)
+	-(edge_label ^p1 <bp> ^l_id <id>)
+	-->
+	; (write edge_label <bp> <p1> <n1> <id> (crlf))
+	; (write edge_label <bp> <p2> <n2> <id> (crlf))
+	; (write edge_label <bp> <p3> <n3> <id> (crlf))
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name <n1> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name <n2> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p3> ^l_name <n3> ^l_id <id>))
+
+(p visit_3j_4
+	(stage ^value visiting_3j)
+	(junction ^name <n> ^base_point <bp> ^p1 <p1> ^p2 <p2> ^p3 <p3> ^visited now)
+	(label ^name <n> ^id <id> ^n1 <n1> ^n2 <n2> ^n3 <n3>)
+	(edge_label ^p1 <p1> ^p2 <bp> ^l_name <n1>)
+	(edge_label ^p1 <p2> ^p2 <bp> ^l_name <n2>)
+	-(edge_label ^p1 <p3> ^p2 <bp>)
+	-(edge_label ^p1 <bp> ^l_id <id>)
+	-->
+	; (write edge_label <bp> <p1> <n1> <id> (crlf))
+	; (write edge_label <bp> <p2> <n2> <id> (crlf))
+	; (write edge_label <bp> <p3> <n3> <id> (crlf))
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name <n1> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name <n2> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p3> ^l_name <n3> ^l_id <id>))
+
+(p visit_3j_5
+	(stage ^value visiting_3j)
+	(junction ^name <n> ^base_point <bp> ^p1 <p1> ^p2 <p2> ^p3 <p3> ^visited now)
+	(label ^name <n> ^id <id> ^n1 <n1> ^n2 <n2> ^n3 <n3>)
+	-(edge_label ^p1 <p1> ^p2 <bp>)
+	(edge_label ^p1 <p2> ^p2 <bp> ^l_name <n2>)
+	-(edge_label ^p1 <p3> ^p2 <bp>)
+	-(edge_label ^p1 <bp> ^l_id <id>)
+	-->
+	; (write edge_label <bp> <p1> <n1> <id> (crlf))
+	; (write edge_label <bp> <p2> <n2> <id> (crlf))
+	; (write edge_label <bp> <p3> <n3> <id> (crlf))
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name <n1> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name <n2> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p3> ^l_name <n3> ^l_id <id>))
+
+(p visit_3j_6
+	(stage ^value visiting_3j)
+	(junction ^name <n> ^base_point <bp> ^p1 <p1> ^p2 <p2> ^p3 <p3> ^visited now)
+	(label ^name <n> ^id <id> ^n1 <n1> ^n2 <n2> ^n3 <n3>)
+	(edge_label ^p1 <p1> ^p2 <bp> ^l_name <n1>)
+	-(edge_label ^p1 <p2> ^p2 <bp>)
+	-(edge_label ^p1 <p3> ^p2 <bp>)
+	-(edge_label ^p1 <bp> ^l_id <id>)
+	-->
+	; (write edge_label <bp> <p1> <n1> <id> (crlf))
+	; (write edge_label <bp> <p2> <n2> <id> (crlf))
+	; (write edge_label <bp> <p3> <n3> <id> (crlf))
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name <n1> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name <n2> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p3> ^l_name <n3> ^l_id <id>))
+
+(p visit_3j_7
+	(stage ^value visiting_3j)
+	(junction ^name <n> ^base_point <bp> ^p1 <p1> ^p2 <p2> ^p3 <p3> ^visited now)
+	(label ^name <n> ^id <id> ^n1 <n1> ^n2 <n2> ^n3 <n3>)
+	-(edge_label ^p1 <p1> ^p2 <bp>)
+	-(edge_label ^p1 <p2> ^p2 <bp>)
+	-(edge_label ^p1 <p3> ^p2 <bp>)
+	-(edge_label ^p1 <bp> ^l_id <id>)
+	-->
+	; (write edge_label <bp> <p1> <n1> <id> (crlf))
+	; (write edge_label <bp> <p2> <n2> <id> (crlf))
+	; (write edge_label <bp> <p3> <n3> <id> (crlf))
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name <n1> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name <n2> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p3> ^l_name <n3> ^l_id <id>))
+
+(p start_visit_2_junction
+	(stage ^value labeling)
+	(junction ^base_point <bp> ^type 2j ^p1 <p1> ^p2 <p2> ^visited no)
+	-->
+	(modify 1 ^value visiting_2j)
+	(modify 2 ^visited now)) 
+
+(p visit_2j_0
+	(stage ^value visiting_2j)
+	(junction ^name <n> ^base_point <bp> ^p1 <p1> ^p2 <p2> ^visited now)
+	(label ^name <n> ^id <id> ^n1 <n1> ^n2 <n2>)
+	(edge_label ^p1 <p1> ^p2 <bp> ^l_name <n1>)
+	(edge_label ^p1 <p2> ^p2 <bp> ^l_name <n2>)
+	-(edge_label ^p1 <bp> ^l_id <id>)
+	-->
+	; (write edge_label <bp> <p1> <n1> <id> (crlf))
+	; (write edge_label <bp> <p2> <n2> <id> (crlf))
+	; (write edge_label <bp> <p3> <n3> <id> (crlf))
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name <n1> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name <n2> ^l_id <id>))
+
+(p visit_2j_1
+	(stage ^value visiting_2j)
+	(junction ^name <n> ^base_point <bp> ^p1 <p1> ^p2 <p2> ^visited now)
+	(label ^name <n> ^id <id> ^n1 <n1> ^n2 <n2>)
+	-(edge_label ^p1 <p1> ^p2 <bp>)
+	(edge_label ^p1 <p2> ^p2 <bp> ^l_name <n2>)
+	-(edge_label ^p1 <bp> ^l_id <id>)
+	-->
+	; (write edge_label <bp> <p1> <n1> <id> (crlf))
+	; (write edge_label <bp> <p2> <n2> <id> (crlf))
+	; (write edge_label <bp> <p3> <n3> <id> (crlf))
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name <n1> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name <n2> ^l_id <id>))
+
+(p visit_2j_2
+	(stage ^value visiting_2j)
+	(junction ^name <n> ^base_point <bp> ^p1 <p1> ^p2 <p2> ^visited now)
+	(label ^name <n> ^id <id> ^n1 <n1> ^n2 <n2>)
+	(edge_label ^p1 <p1> ^p2 <bp> ^l_name <n1>)
+	-(edge_label ^p1 <p2> ^p2 <bp>)
+	-(edge_label ^p1 <bp> ^l_id <id>)
+	-->
+	; (write edge_label <bp> <p1> <n1> <id> (crlf))
+	; (write edge_label <bp> <p2> <n2> <id> (crlf))
+	; (write edge_label <bp> <p3> <n3> <id> (crlf))
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name <n1> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name <n2> ^l_id <id>))
+
+(p visit_2j_3
+	(stage ^value visiting_2j)
+	(junction ^name <n> ^base_point <bp> ^p1 <p1> ^p2 <p2> ^visited now)
+	(label ^name <n> ^id <id> ^n1 <n1> ^n2 <n2>)
+	-(edge_label ^p1 <p1> ^p2 <bp>)
+	-(edge_label ^p1 <p2> ^p2 <bp>)
+	-(edge_label ^p1 <bp> ^l_id <id>)
+	-->
+	; (write edge_label <bp> <p1> <n1> <id> (crlf))
+	; (write edge_label <bp> <p2> <n2> <id> (crlf))
+	; (write edge_label <bp> <p3> <n3> <id> (crlf))
+	(make edge_label ^p1 <bp> ^p2 <p1> ^l_name <n1> ^l_id <id>)
+	(make edge_label ^p1 <bp> ^p2 <p2> ^l_name <n2> ^l_id <id>))
+
+(p end_visit
+	(stage ^value << visiting_3j visiting_2j >>)
+	(junction ^visited now)
+	-->
+	(modify 1 ^value marking))
+
+(p marking
+	(stage ^value marking)
+	(junction ^base_point <bp> ^visited now)
+	(edge ^p1 <p> ^p2 <bp>)
+	(junction ^base_point <p> ^visited yes)
+	-->
+	(modify 4 ^visited check))
+
+(p stop_marking
+	(stage ^value marking)
+	(junction ^base_point <bp> ^visited now)
+	-->
+	(modify 2 ^visited yes))
+(p start_checking
+	(stage ^value marking)
+	-->
+	(modify 1 ^value checking))
+
+(p checking
+	(stage ^value checking)
+	(junction  ^base_point <bp> ^visited check)
+	(edge_label ^p1 <bp> ^p2 <p> ^l_name <n> ^l_id <id>)
+	(junction ^base_point <p> ^visited yes)
+	-(edge_label ^p1 <p> ^p2 <bp> ^l_name <n>)
+	-->
+	(modify 1 ^value remove_label)
+	(make illegal ^bp <bp> ^l_id <id>))
+
+(p remove_label_3j
+	(stage ^value remove_label)
+	(illegal ^bp <bp> ^l_id <id>)
+	(junction ^type 3j ^base_point <bp> ^p1 <p1> ^p2 <p2> ^p3 <p3>)
+	(edge_label ^p1 <bp> ^p2 <p1> ^l_id <id>)
+	(edge_label ^p1 <bp> ^p2 <p2> ^l_id <id>)
+	(edge_label ^p1 <bp> ^p2 <p3> ^l_id <id>)
+	-->
+	; (write edge_label <bp> <p1> <id> (crlf))
+	; (write edge_label <bp> <p2> <id> (crlf))
+	; (write edge_label <bp> <p2> <id> (crlf))
+	(modify 1 ^value checking)
+	(remove 2)
+	(remove 4)
+	(remove 5)
+	(remove 6))
+
+(p remove_edge_2j
+	(stage ^value remove_label)
+	(illegal ^bp <bp> ^l_id <id>)
+	(junction ^type 2j ^base_point <bp> ^p1 <p1> ^p2 <p2>)
+	(edge_label ^p1 <bp> ^p2 <p1> ^l_id <id>)
+	(edge_label ^p1 <bp> ^p2 <p2> ^l_id <id>)
+	-->
+	; (write edge_label <bp> <p1> <n1> <id> (crlf))
+	; (write edge_label <bp> <p2> <n2> <id> (crlf))
+	(modify 1 ^value checking)
+	(remove 2)
+	(remove 4)
+	(remove 5))
+
+(p checking
+	(stage ^value checking)
+	(junction  ^base_point <bp> ^visited check)
+	-->
+	(modify 2 ^visited yes))
+(p stop_checking
+	(stage ^value checking)
+	-->
+	(modify 1 ^value labeling))
+
+(p done_labeling
+	(stage ^value labeling)
+	-->
+	(modify 1 ^value printing))
+
+;(p printing
+;	(stage ^value printing)
+;	(edge_label ^p1 <p1> ^p2 <p2> ^l_name <n> ^l_id <id>)
+;	-->
+	; (write edge <p1> <p2> <n> <id> (crlf)))
+
+(p done
+	(stage ^value printing)
+	-->
+	(halt))
+

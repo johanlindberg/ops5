@@ -1,0 +1,77 @@
+(literalize guest name sex hobby)
+(literalize last_seat seat)
+(literalize seating seat1 name1 name2 seat2 id pid path_done)
+(literalize context)
+(literalize path id name seat)
+(literalize chosen id name hobby)
+(literalize count c)
+
+(p assign_first_seat
+	(context start)
+	(guest ^name <n>)
+	(count ^c <c>)
+	-->
+	(make seating ^seat1 1 ^name1 <n> ^name2 <n> ^seat2 1 ^id <c> ^pid 0 ^path_done yes)
+	(make path ^id <c> ^name <n> ^seat 1)
+	(modify 3 ^c (compute <c> + 1))
+	(write seat 1 <n> <n> 1 <c> 0 1 (crlf))
+	(modify 1 assign_seats))
+
+(p find_seating
+	(context assign_seats)
+	(seating ^seat1 <seat1> ^seat2 <seat2> ^name2 <n2> ^id <id> ^pid <pid> ^path_done yes)
+	(guest ^name <n2> ^sex <s1> ^hobby <h1>)
+	(guest ^name <g2> ^sex <> <s1> ^hobby <h1>)
+	(count ^c <c>)
+	-(path ^id <id> ^name <g2>)
+	-(chosen ^id <id> ^name <g2> ^hobby <h1>)
+	-->
+	(make seating ^seat1 <seat2> ^name1 <n2> ^name2 <g2> ^seat2 (compute <seat2> + 1) ^id <c> ^pid <id> ^path_done no)
+	(make path ^id <c> ^name <g2> ^seat (compute <seat2> + 1))
+	(make chosen ^id <id> ^name <g2> ^hobby <h1>)
+	(modify 5 ^c (compute <c> + 1))
+	(write seat <seat2> <n2> <g2> (crlf))
+	(modify 1 make_path))
+
+(p make_path
+	(context make_path)
+	(seating ^id <id> ^pid <pid> ^path_done no)
+	(path ^id <pid> ^name <n1> ^seat <s>)
+	-(path ^id <id> ^name <n1>)
+	-->
+	(make path ^id <id> ^name <n1> ^seat <s>))
+
+(p path_done
+	(context make_path)
+	(seating ^path_done no)
+	-->
+	(modify 2 ^path_done yes)
+	(modify 1 check_done))
+
+(p are_we_done
+	(context check_done)
+	(last_seat <l_seat>)
+	(seating ^seat2 <l_seat>)
+	-->
+	(write (crlf) Yes, we are done!! (crlf))
+	(modify 1 print_results))
+
+(p continue
+	(context check_done)
+	-->
+	(modify 1 assign_seats))
+
+(p print_results
+	(context print_results)
+	(seating ^id <id> ^seat2 <s2>)
+	(last_seat <s2>)
+	(path ^id <id> ^name <n> ^seat <s>)
+	-->
+	(remove 4)
+	(write <n> <s> (crlf)))
+
+(p all_done
+	(context print_results)
+	-->
+	(halt))
+

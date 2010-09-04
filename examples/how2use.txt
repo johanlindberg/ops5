@@ -1,0 +1,305 @@
+THE PROGRAMS AND DATA GENERATORS
+        
+This document will examine five diverse benchmark programs for the Ops5c
+compiler and explain how to use them quickly and effectively.  Each of the
+benchmarkable programs, ARP, Miss Manners, Waltz, WaltzDB, and Weaver, present a
+wide range of complexity, which has been achieved through a varying number of
+rules from each program to the next.  There is also a large amount of
+flexibility because each program has its own unique data set generator, with
+which data sets of many different sizes can be created.
+
+The next five sections explain how to compile each program, and set up the data
+generators.  The last section will demonstrate how to set up a script and
+execute a benchmark.  In order to help you comprehend the complexity of these
+benchmarks, each section will also include the values that we used in our
+testing, on a SPARC Station 1+.  Any commands which are given in this text, are
+based on the SunOS v4.0.3 and were done using our own OPS5c compiler.
+Your milage may vary.
+
+
+A.R.P.
+
+The A.R.P. program is an Aeronautical Route Planner, which will plot a course
+over a given terrain from point 1 to point 2, for a plane or missile.  The
+program assumes very little about the data, so the user has to input all of the
+terrain boundaries for the data set.  When it is run, the program will choose a
+course which will minimize the costs of altitude, height above the terrain, and
+distance traveled.
+         
+For the data set generator, first compile the arp-data.c into an executable
+file.  When it is run, it will ask almost fourty questions.  The data will be
+saved in a file called rav-sceneXxYxZ.dat, where X, Y and Z are the coordinates
+that are put into the data generator.  The following is a list of these
+questions, along with the data that we used.  Note that the Z coordinate was the
+only variant in each of our four data sets:
+        -Cost per foot of distance travelled?			0
+        -Cost per foot of altitude?             		1
+        -Cost per foot of exceeding terrain, etc.?		0
+    Cooridor Information
+        -Top height in feet?				     	3700
+        -Bottom height in feet?				     	1000
+        -Width in feet?				           	500000
+        -Maximum X coordinate				       	10
+        -Maximum Y coordinate				       	10
+        -Maximum Z coordinate			      		15/20/25/30
+    Miscellaneous Info
+        -Vertical Clearence in feet?			        0	
+    Terrain Info
+        -Bottom Latitude degrees?			     	4400
+        -Bottom Direction?				    	north
+        -Top Latitude degrees?				     	4800
+        -Top Direction?					    	north
+        -Left longitude degrees?			    	12400
+        -Left Direction?				     	west
+        -Right longitude degrees?			    	12000	
+        -Right Direction?				     	west
+        -Maximum x coordinate?				       	10
+        -Maximum y coordinate?				       	10
+    Elevation Data
+        -Plain height?					     	1000
+        -Do you want to place a wall in the landscape?		y
+        -Height of wall above plane?			     	1500
+        -Wall alignment (vertical/horizontal)?			v
+        -Coordinate of wall?					5	
+    Waypoint 1
+        -Id number?						1
+        -Mission?					     	main
+        -Latitude degrees?					4600
+        -Latitude direction?					north
+        -Longitude degrees?					12400
+        -Longitude direction?					west
+        -Altitude in feet?					2500
+        -Next waypoint?						2
+    Waypoint 2
+        -Id number?						2
+        -Latitude degrees?					4600
+        -Latitude direction?					north
+        -Longitude degrees?					12000
+        -Longitude direction?					west
+        -Altitude in feet?					2500
+        
+Next the the arp.ops file must be compiled into an object file.  Another file,
+named rav-functions.c, contains information needed by the program and must also
+be compiled into an object file.  Then link both of these files along with the
+ops5 library, which is located at /ops5c/lib/libops5c.a, and the math library.
+This will produce an executable file.
+
+ARP is peculiar to execute, because it has an extra step which none of the
+otehr programs have.  To run the file, two things will need to be loaded up at
+Top Level> command.  First get the data set which has been created with (load
+"file".dat).  There is another file which the program needs to have loaded up,
+and you will need to type (load arp-rp-makes).  Without the file arp-rp-makes,
+the benchmark will run, but it will finish prematurely, so it must be included
+to get the most accurate results.  The rest of the execution steps are the same
+as the other programs.
+
+ 
+Miss Manners
+
+Miss Manners is a program which handles the problem of finding an acceptable
+seating arrangement for guests at a dinner party.  It will attempt to match
+people with the same hobbies, and to seat everyone next to a member of the
+opposite sex.  Manners is a small program, which has only eight rules, and
+employs a depth-first search approach to the problem.  It is an easy and fast
+program to generate data for, as well as to run benchmarks on.
+        
+The first step will be to create data which will be used by the manners program.
+The file manners_data.c contains the data set generator source code.  After it
+is compiled into an executible file and run, it will prompt the user for four
+numbers: the number of guests; the number of seats; the maximum number of
+hobbies; and the minimum number of hobbies.  The file will be saved
+manners_XX.dat where XX is the number of guests which were created for that
+file.
+  
+Here are the numbers for the data that we used to run benchmarks:
+16 guests, 16 seats, max 3 hobbies, min 2 hobbies;
+32 guests, 32 seats, max 3 hobbies, min 2 hobbies;
+64 guests, 64 seats, max 3 hobbies, min 2 hobbies;
+128 guests, 128 seats, max 3 hobbies, min 2 hobbies.
+
+Once a data set has been created, the program can be compiled and run.  First
+the manners.ops file must be compiled into an object file.  Then link this file
+with the Ops5 library module, which is located at /ops5c/lib/libops5c.a.  This
+will produce an executable file which will be placed into a file named a.out
+
+
+Waltz
+
+The Waltz program is an expert system, which will analyze the lines of a
+2-dimensional drawing, and label them as if they were edges in a 3-dimensional
+object.  The biggest limitation is that Waltz can only handle drawings with
+junctions of two and three lines.  However this problem has been taken care of,
+as we will see in the next section.  The Waltz data is easy to create, and
+because the program has only thirty-three rules it runs reasonably quickly.
+        
+The data set generator for Waltz is named waltzy.c, and it will need to be
+compiled into an executable file.  The data which is created by waltzy, is based
+totally on the number of regions that the user wants the drawing to have.  Since
+a single region has been predefined as a base drawing of 72 lines, the user will
+only need to input how many of these regions the drawing will have.  From this
+the data set generator will create a file named waltzXX.dat, where XX is the
+number of regions that the data set has.  For our benchmarks, we used 12, 25,
+37, and 50 region data sets.
+
+After the data generator is done, work can begin on the program itself.  First
+the waltz.ops file must be compiled into an object file.  Another program,
+waltz-file.c, contains information needed by the program and must also be
+compiled into an object file.  Then link waltz.o and waltz-file.o, along with
+the Ops5 library module which is located at /ops5c/lib/libops5c.a, and a math
+library.  This will produce an executable program in the temporary file a.out.
+
+
+WaltzDB
+
+The WaltzDB program is an expert system, like Waltz, which labels the lines in a
+2-dimensional drawing, in order to assign it the qualities of a 3-dimensional
+object.  The biggest change is that WaltzDB can handle drawings with junctions
+of four to six lines, while Waltz only does junctions of two or three.  For
+WaltzDB there are thirty-five rules, and its data sets have a lot of junctions,
+so it will run longer than a waltz program of the same number of regions.
+
+The data set generator for WaltzDB is named waltzydb.c, and it will need to be
+compiled into an executable file.  The data which is created by waltzydb, has
+been changed a little from the data generated from the original waltzy, but
+waltzydb still operates on the number of regions that the user wants the data
+set to have.  The data set generator will create a file named waltzdbXX.dat,
+where XX is the number of regions that the data set has.  For WaltzDB data we
+had used 4, 8, 12, and 16 regions in our tests.
+        
+To compile the program for WaltzDB, the steps are the same as for Waltz.  As
+before, the waltzdb.ops and waltz-file.c programs must be made into object
+modules and then linked with /ops5/lib/libops5c.a, and the math library.  This
+will produce an executable file in the temporary file a.out.
+
+
+Weaver
+
+The Weaver program is an expert system, which is composed of many other expert
+systems that communicate through a common black board.  It is used to do VLSI
+routing for channels and boxes, and with over six hundred rules it is the
+largest benchmark of the five.
+
+Oddly enough the data for such a complex program is fairly simple, because it
+only requires the dimensions of a box or channel.  Because a box and a channel
+will each handle the dimensions differently, each type has it's own data
+generator, called generate_box.c and generate_channel.c.  To create data for
+each one is almost the same.  After compiling the generate.c programs, simply
+type:
+        generate_"file"  <space>   the chip width   <space>   the chip length.
+
+This will produce a data file called boxWxL.dat or channelWxL.dat, where WxL
+represent the Width x Length.  This file will need to be fed into the frontend
+program, which will produce the final input for the Weaver program.  To use
+frontend, first compile the frontend.c program into an executable.  When it is
+run, it will prompt for the filename of your data.  It will create a temporary
+file named inter.tmp where it will put the final data to be used for Weaver.
+The frontend is currently set up to only handle 200 pins, so if your data uses
+more that 200 pins, you can increase the maximum size in the #define
+statements at the beginning of frontend.c.
+
+For the benchmarks, we used four different box dimentions 20x20, 20x40, 20x80,
+20x120.
+        
+Compiling Weaver is a tricky process.  First open up the weaver.ar file and 
+find the first #ifdef statement.  Move that single line from where it is
+and put it on the very first line. Then weaver.ops must be compiled into c
+code so that we can produce an and object file.  In order to keep the size of
+the c program under control, you should use the command "ops5c -c200 -s
+weaver.ops".  The -c flag will create some smaller c modules, as well as create
+an index file for them named comp.sh.  The -s flag is an indicator that seed
+ordering should be used when creating these modules, because it will save not
+only time, but also space.  Once this has been done the compiler will create
+about 25 c modules, along with comp.sh.
+        
+***If you have used the Install command in the Ops5c directory, to install
+***ops5 on your system, then you are ready to compile.  If not, then there is
+***one final change left to be made.  Open up the file "comp.sh", which was
+***made by the -c flag, and go to the very last line.  Change the command
+***"-lops5c" to reference your library module, like"../lib/libops5c.a".
+
+The last thing left to do now is to compile and link the file, which will take
+approximately two to three hours.  To do this just run the comp.sh program, and
+it will build everything that is necessary.  If you do not want to view the
+comp.sh as it compiles each segment of weaver.c, then redirect the output from
+it into another file and run it in the background, using a command like "comp.sh
+> comp.out &".
+
+
+Running Benchmarks
+
+In order to clear up any confusion about the instructions given above, I will
+step through the processes using the Manners program as an example.
+
+Compiling the data generator:   cc manners_data.c 
+                                mv a.out manners_data.exe
+Compiling the Manners program:  ops5c manners.ops
+Creating the Object module:     cc -c manners1.c
+Linking the files:              cc manners1.o ~/ops5c/lib/libops5c.a
+				mv a.out manners.exe
+
+Now that those have been compiled, you will need to created data for the program
+to use.  To start of with something simple, use a data set of: 16 Guests, 16
+chairs, 3 maximum hobbies, and 2 minimum hobbies.
+
+The first step in getting the benchmark running is to create a script of load
+and run statements which will be used by the executable program.  Here is a
+sample of what that script might look like:
+				(watch 0)		
+				(load manners_16.dat)
+				(run)
+				(exit)
+To start the benchmark, we will use the time command, and redirect the output to
+a file for later reference:
+
+	   (time manners.exe < script >& output.file)>& time.output & 
+
+In this example there are four file names involved, and two of these files
+have already been created.  The first is manners.exe which is the executable
+file we want to time, and the other file is script which contains the 4 lines
+given above.  The other two files are output and time.output, which will be
+created after the time command.  The output file will store things which would
+have initially been printed to the screen, and time.output will store the time
+it took to run the benchmark in clock time, as well as cpu seconds.
+
+In the case of the manners_16 data set, the time should not be more than a few
+seconds.  However most of the benchmarks will last more than a few minutes, and
+some may last hours, so using the time command in this fashion is convenient.
+For the best timing results, do not run anything which is very demanding on the
+cpu at the same time as running your benchmark.  Here is a list of the benchmark
+times we have had, in order that you may gauge how long each data set should
+take.  Note that these times were run on the SPARC Station 1+, and that a
+statistical flag was used during the timing.  So if you are using a SPARC
+Station 1+ or an equivalent machine the times should be slightly shorter.
+  
+ ________________________________________________________
+|  PROGRAM     |   DATA SET SIZE  |  SPARC 1+  TIME     |
+---------------------------------------------------------
+|  ARP         |   10 X 10 X 15   |      224.3          |
+|              |   10 X 10 X 20   |      529.8          |
+|              |   10 X 10 X 25   |      822.1          |
+|              |   10 X 20 X 30   |     1220.2          |
+---------------------------------------------------------
+|  MANNERS     |   16 GUESTS      |        1.0          |
+|              |   32 GUESTS      |       13.8          |
+|              |   64 GUESTS      |      425.8          |
+|              |  128 GUESTS      |     5838.5          |
+---------------------------------------------------------
+|  WALTZ       |   12 REGIONS     |      343.3          |
+|              |   25 REGIONS     |      988.0          |
+|              |   37 REGIONS     |     2963.0          |
+|              |   50 REGIONS     |     3831.8          |
+---------------------------------------------------------
+|  WALTZ_DB    |    4 REGIONS     |      641.5          |
+|              |    8 REGIONS     |     2109.6          |
+|              |   12 REGIONS     |     4341.6          |
+|              |   16 REGIONS     |     8033.3          |
+---------------------------------------------------------
+|  WEAVER      |   20 X 20        |      170.3          |
+|              |   20 X 40        |      255.8          |
+|              |   20 X 80        |      552.6          |
+|              |   20 X 120       |     1053.7          |
+---------------------------------------------------------
+
+
+* all time results are in cpu seconds*
+* all executables were compiled in Ops5c  V1.09*

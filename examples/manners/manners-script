@@ -1,0 +1,4 @@
+(watch 0)
+(load manners_16.dat)
+(run)
+(exit)
